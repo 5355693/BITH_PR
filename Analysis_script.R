@@ -1,8 +1,35 @@
 library(ggplot2)
-cells <- read.csv(file = "Data/Cells_surveyed.csv", header = T)
-ggplot(data = cells, aes(x = mean, fill = factor(BITH))) + geom_dotplot(method="histodot",binwidth = 0.085,stackgroups = TRUE)
-png(file = "/Users/johnlloyd/Dropbox/VCE/BITH Puerto Rico/Figure3.png")
-ggplot(data = cells, aes(x = mean, fill = BITH_cat)) + geom_histogram() + xlab("Predicted probability of Bicknell's\nThrush presence in survey block") + 
-  ylab("Number of blocks") + guides(fill=guide_legend(title="Bicknell's Thrush\ndetected?"))
-dev.off()
-summary(cells)
+library(dplyr)
+library(rgeos)
+library(maps)
+library(mapdata)
+library(maptools)
+library(tidyr)
+counts <- read.csv("Data/Survey_data_PuertoRico_counts.csv",  header = T)
+summary(counts)
+counts.wide <-
+  counts %>%
+  group_by(Point.ID, Species.code)%>%
+  summarise(total = sum(Count),
+            Date = first(Date))%>%
+  spread(key = Species.code, value = total,fill = 0)
+
+counts.wide <- subset(df, select = -c(Detection.mode,Species,Distance) )
+##
+bith.gbif <- read.delim(file = "Data/BITH_GBIFall.csv", header = T)
+bith.gbif %>%
+  filter(!countrycode %in% c("US","CA","MX","VE","BM","CO")) %>%
+ggplot(., aes(x = countrycode)) + 
+  geom_bar() + xlab("Country") + ylab("Number of verified\noccurences in GBIF") + 
+  theme(axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        axis.text.x = element_text(size = 18),
+        axis.text.y = element_text(size = 18))
+##Points surveyed
+points <- read.csv("Data/Survey_data_PuertoRico_pointinfo.csv", header = T)
+cells <- readShapePoly("~/Dropbox/VCE/BITH Puerto Rico/GIS/GRTS_cells_surveyed_2015.shp")
+map("worldHires","Puerto Rico", xlim = c(-67.3, -65.6), ylim = c(17.9,18.6),
+    mar = c(0.1,0.1,0.1,0.1))
+plot(cells, add = TRUE, col = alpha("darkgreen",0.6), border = TRUE)
+points(points$X.coordinate, points$Y.coordinate, pch=19, col="red", cex=0.5)
+
