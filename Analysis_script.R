@@ -5,8 +5,16 @@ library(maps)
 library(mapdata)
 library(maptools)
 library(tidyr)
+library(reshape)
 counts <- read.csv("Data/Survey_data_PuertoRico_counts.csv",  header = T)
 summary(counts)
+str(counts)
+tmp <- cast(counts, Species~Species.code)
+tmp$count <- rowSums(tmp[,2:71] > 1)
+max(counts$Count, na.rm = T)  
+
+
+
 counts.wide <-
   counts %>%
   group_by(Point.ID, Species.code)%>%
@@ -27,6 +35,14 @@ ggplot(., aes(x = countrycode)) +
         axis.text.y = element_text(size = 18))
 ##Points surveyed
 points <- read.csv("Data/Survey_data_PuertoRico_pointinfo.csv", header = T)
+points.long <- gather(points, interval, time, Time.1:Time.4)
+points.long$Visit <- substr(points.long$interval, 6,6)
+points.long$interval <- NULL
+points.long$newdate <- with(points.long, as.POSIXct(paste(Date, time), format="%m/%e/%y %H:%M"))
+points.long$Date <- NULL
+points.long$time <- NULL
+names(points.long)[names(points.long) == 'newdate'] <- 'Date'
+
 cells <- readShapePoly("~/Dropbox/VCE/BITH Puerto Rico/GIS/GRTS_cells_surveyed_2015.shp")
 map("worldHires","Puerto Rico", xlim = c(-67.3, -65.6), ylim = c(17.9,18.6),
     mar = c(0.1,0.1,0.1,0.1))
