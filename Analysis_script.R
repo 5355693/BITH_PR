@@ -22,7 +22,7 @@ counts.wide <-
             Date = first(Date))%>%
   spread(key = Species.code, value = total,fill = 0)
 
-counts.wide <- subset(df, select = -c(Detection.mode,Species,Distance) )
+write.csv(points.long,"Data/Survey_data_PuertoRico_pointinfo_long.csv")
 ##
 bith.gbif <- read.delim(file = "Data/BITH_GBIFall.csv", header = T)
 bith.gbif %>%
@@ -35,6 +35,28 @@ ggplot(., aes(x = countrycode)) +
         axis.text.y = element_text(size = 18))
 ##Points surveyed
 points <- read.csv("Data/Survey_data_PuertoRico_pointinfo.csv", header = T)
+##Elevations of each point as determined in GEE using SRTM DEM (30m)
+elevations <- read.csv("Data/elevations_estimated.csv", header = T)
+colnames(elevations) <- c("Point.ID","elevation")
+##Join elevations to points file
+points <- left_join(points, elevations, by = "Point.ID")
+##Predicted habitat suitability at each point, as determined in GEE
+pointSuitability <- read.csv("Data/predicted_suitability.csv", header = T)
+##Join points with habitat suitability file
+points <- left_join(points, pointSuitability, by = "Point.ID")
+##Summarize
+summary(points)
+##Elevations ranged from 0 - 1297 m, median of 705 m, IQR = 408 - 825 m.
+##Habitat suitability ranged from 0.02 - 0.8820, median = 0.6230, IQR = 0.3170 - 0.8025
+png(filename = "pointsHabHisto.png", width = 2000, height = 1850,res = 300)
+hist(points$habitatValue, main = "",xlab = "Predicted probability of Bicknell's Thrush occurrence",
+     ylab = "Number of point-count locations")
+dev.off()
+
+png(filename = "pointsElevHisto.png", width = 2000, height = 1850,res = 300)
+hist(points$elevation, main = "", xlab = "Elevation (m)", ylab = "Number of point-count locations")
+dev.off()
+
 points.long <- gather(points, interval, time, Time.1:Time.4)
 points.long$Visit <- substr(points.long$interval, 6,6)
 points.long$interval <- NULL
